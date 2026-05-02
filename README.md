@@ -1,0 +1,75 @@
+# Task Tracker
+
+A task management and tracking application operated via Telegram bot. Built with Go using Clean Architecture.
+
+## Tech Stack
+
+- **Language**: Go
+- **HTTP**: Chi framework (webhooks, health checks)
+- **Database**: PostgreSQL
+- **Logger**: Standard library `log`
+- **API Docs**: Swagger
+- **Bot**: Telegram Bot API
+
+## Architecture
+
+Clean Architecture with four layers:
+
+```
+controller → usecase → repo → entity
+```
+
+### Directory Structure
+
+```
+cmd/app/              # Application entrypoint
+internal/
+  app/                # Bootstrap and shutdown logic
+  controller/         # Adapters: Telegram bot handlers, REST API
+    restapi/          # Chi HTTP routes (webhooks, Swagger)
+  entity/             # Domain models and business errors
+  usecase/            # Business logic
+  repo/
+    persistent/       # PostgreSQL implementations
+pkg/
+  httpserver/         # HTTP server wrapper
+  logger/             # Logger wrapper
+  postgres/           # Database client wrapper
+migrations/           # SQL migrations (golang-migrate)
+config/               # Configuration
+docs/                 # Swagger documentation
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.21+
+- PostgreSQL
+- Telegram Bot Token (from @BotFather)
+
+### Setup
+
+1. Create `.env` file:
+```env
+DB_URL=postgres://user:pass@localhost:5432/tasktracker?sslmode=disable
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+```
+
+2. Apply migrations:
+```bash
+migrate -path migrations -database "$DB_URL" up
+```
+
+3. Run the app:
+```bash
+go run ./cmd/app
+```
+
+## API Documentation
+
+After running the app, Swagger UI is available at `/swagger/index.html` (if HTTP endpoints are enabled).
+
+## License
+
+MIT
