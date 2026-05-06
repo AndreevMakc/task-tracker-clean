@@ -150,3 +150,60 @@ func (r *TaskRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 	return nil
 }
+
+func (r *TaskRepo) UpdateWithLock(ctx context.Context, id uuid.UUID, fn func(*entity.Task) error) (*entity.Task, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("task begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	query := `
+		SELECT id, title, status, created_at, updated_at
+		FROM tasks
+		WHERE id = $1
+		FOR UPDATE
+	`
+	var task entity.Task
+	err = tx.QueryRow(ctx, query, id).Scan(
+		&task.ID,
+		&task.Title,
+		&task.Status,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repo.ErrNotFound
+		}
+		return nil, fmt.Errorf("task getbyid for update: %w", err)
+	}
+
+	if err := fn(&task); err != nil {
+		return nil, err
+	}
+
+	updateQuery := `
+		UPDATE tasks
+		SET title = $1, status = $2, updated_at = $3
+		WHERE id = $4
+	`
+	result, err := tx.Exec(ctx, updateQuery,
+		task.Title,
+		task.Status,
+		task.UpdatedAt,
+		task.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("task update tx: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return nil, repo.ErrNotFound
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("task commit tx: %w", err)
+	}
+
+	return &task, nil
+}

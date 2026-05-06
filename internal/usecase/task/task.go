@@ -20,12 +20,13 @@ func NewTaskUsecase(tr repo.TaskRepository) usecase.TaskUsecase {
 }
 
 func (uc *taskUsecase) CreateTask(ctx context.Context, title string) (*entity.Task, error) {
+	now := time.Now()
 	t := &entity.Task{
 		ID:        uuid.New(),
 		Title:     title,
 		Status:    entity.TaskStatusToDo,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	if err := t.Validate(); err != nil {
@@ -63,7 +64,23 @@ func (uc *taskUsecase) ListTasks(ctx context.Context, filter usecase.TaskFilter)
 }
 
 func (uc *taskUsecase) UpdateTask(ctx context.Context, id uuid.UUID, title *string, status *entity.TaskStatus) (*entity.Task, error) {
-	t, err := uc.taskRepo.GetByID(ctx, id)
+	task, err := uc.taskRepo.UpdateWithLock(ctx, id, func(t *entity.Task) error {
+		if title != nil {
+			if *title == "" {
+				return entity.ErrMissingTaskTitle
+			}
+			t.Title = *title
+		}
+
+		if status != nil {
+			if err := t.Transition(*status); err != nil {
+				return err
+			}
+		}
+
+		t.UpdatedAt = time.Now()
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, repo.ErrNotFound) {
 			return nil, entity.ErrTaskNotFound
@@ -71,30 +88,17 @@ func (uc *taskUsecase) UpdateTask(ctx context.Context, id uuid.UUID, title *stri
 		return nil, err
 	}
 
-	if title != nil {
-		if *title == "" {
-			return nil, entity.ErrMissingTaskTitle
-		}
-		t.Title = *title
-	}
-
-	if status != nil {
-		if err := t.Transition(*status); err != nil {
-			return nil, err
-		}
-	}
-
-	t.UpdatedAt = time.Now()
-
-	if err := uc.taskRepo.Update(ctx, t); err != nil {
-		return nil, err
-	}
-
-	return t, nil
+	return task, nil
 }
 
 func (uc *taskUsecase) DeleteTask(ctx context.Context, id uuid.UUID) error {
-	t, err := uc.taskRepo.GetByID(ctx, id)
+	_, err := uc.taskRepo.UpdateWithLock(ctx, id, func(t *entity.Task) error {
+		if err := t.Transition(entity.TaskStatusTrashed); err != nil {
+			return err
+		}
+		t.UpdatedAt = time.Now()
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, repo.ErrNotFound) {
 			return entity.ErrTaskNotFound
@@ -102,11 +106,5 @@ func (uc *taskUsecase) DeleteTask(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	if err := t.Transition(entity.TaskStatusTrashed); err != nil {
-		return err
-	}
-
-	t.UpdatedAt = time.Now()
-
-	return uc.taskRepo.Update(ctx, t)
+	return nil
 }

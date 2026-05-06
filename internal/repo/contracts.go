@@ -5,8 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"task-tracker-clean/internal/entity"
+
+	"github.com/google/uuid"
 )
 
 var ErrNotFound = errors.New("entity not found")
@@ -26,6 +27,8 @@ type TaskRepository interface {
 	Create(ctx context.Context, task *entity.Task) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, error)
 	List(ctx context.Context, filter TaskFilter) ([]entity.Task, error)
-	Update(ctx context.Context, task *entity.Task) error
+	//TODO: to be implement later for admins
 	Delete(ctx context.Context, id uuid.UUID) error
+
+	UpdateWithLock(ctx context.Context, id uuid.UUID, fn func(*entity.Task) error) (*entity.Task, error)
 }
