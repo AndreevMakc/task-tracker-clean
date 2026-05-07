@@ -19,6 +19,7 @@ type Bot struct {
 
 func NewBot(uc usecase.TaskUsecase, token string) (*Bot, error) {
 	if token == "" {
+		log.Println("TELEGRAM_BOT_TOKEN not set, bot disabled")
 		return nil, nil
 	}
 
