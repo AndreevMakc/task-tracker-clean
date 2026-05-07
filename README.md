@@ -46,19 +46,44 @@ docs/                 # Swagger documentation
 
 - Go 1.21+
 - PostgreSQL
+- [migrate CLI](https://github.com/golang-migrate/migrate) (for database migrations)
 - Telegram Bot Token (from @BotFather)
 
-### Setup
+### Quick Start (using Make)
+
+1. Create `.env` file (copy from example):
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` with your settings (update `PG_URL` with your PostgreSQL credentials).
+
+3. Run the application (auto-applies migrations):
+```bash
+make run
+```
+
+### Available Make Commands
+
+| Command | Description |
+|---------|-------------|
+| `make run` | Apply migrations and start the application |
+| `make migrate` | Apply all pending database migrations |
+| `make check-migrations` | Show current migration version in database |
+| `make test` | Run tests with race detector |
+| `make help` | Show all available commands |
+
+### Manual Setup (without Make)
 
 1. Create `.env` file:
 ```env
-DB_URL=postgres://user:pass@localhost:5432/tasktracker?sslmode=disable
+PG_URL=postgres://user:pass@localhost:5432/tasktracker?sslmode=disable
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
 2. Apply migrations:
 ```bash
-migrate -path migrations -database "$DB_URL" up
+migrate -path migrations -database "$PG_URL" up
 ```
 
 3. Run the app:
