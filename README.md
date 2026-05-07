@@ -70,6 +70,7 @@ make run
 | `make run` | Apply migrations and start the application |
 | `make migrate` | Apply all pending database migrations |
 | `make check-migrations` | Show current migration version in database |
+| `make test` | Run tests with race detector |
 | `make help` | Show all available commands |
 
 ### Manual Setup (without Make)
