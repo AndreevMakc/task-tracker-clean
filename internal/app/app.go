@@ -13,6 +13,7 @@ import (
 
 	"task-tracker-clean/config"
 	"task-tracker-clean/internal/controller/restapi"
+	"task-tracker-clean/internal/controller/telegram"
 	"task-tracker-clean/internal/repo/persistent"
 	taskusecase "task-tracker-clean/internal/usecase/task"
 	"task-tracker-clean/pkg/httpserver"
@@ -45,6 +46,11 @@ func (a *App) Run() error {
 	taskRepo := persistent.NewTaskRepo(pg.Pool())
 	taskUC := taskusecase.NewTaskUsecase(taskRepo)
 
+	tgBot, err := telegram.NewBot(taskUC, a.cfg.TG.BotToken)
+	if err != nil {
+		return fmt.Errorf("failed to create telegram bot: %w", err)
+	}
+
 	router := restapi.NewRouter(taskUC)
 
 	server := httpserver.New(
@@ -62,6 +68,14 @@ func (a *App) Run() error {
 			serverErr <- err
 		}
 	}()
+
+	if tgBot != nil {
+		go func() {
+			if err := tgBot.Run(ctx); err != nil {
+				log.Printf("telegram bot error: %v", err)
+			}
+		}()
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
