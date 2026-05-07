@@ -153,11 +153,11 @@ func (h *TaskHandler) handleGet(ctx *th.Context, update telego.Update) error {
 	return nil
 }
 
-func (h *TaskHandler) updateStatus(ctx *th.Context, update telego.Update, status entity.TaskStatus) error {
-	idStr := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, "/"+string(status)))
+func (h *TaskHandler) updateStatus(ctx *th.Context, update telego.Update, command string, status entity.TaskStatus) error {
+	idStr := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, "/"+command))
 	if idStr == "" {
 		_, _ = ctx.Bot().SendMessage(ctx, tu.Message(
-			tu.ID(update.Message.Chat.ID), fmt.Sprintf("Usage: /%s <task_id>", status),
+			tu.ID(update.Message.Chat.ID), fmt.Sprintf("Usage: /%s <task_id>", command),
 		))
 		return nil
 	}
@@ -186,19 +186,19 @@ func (h *TaskHandler) updateStatus(ctx *th.Context, update telego.Update, status
 }
 
 func (h *TaskHandler) handleDone(ctx *th.Context, update telego.Update) error {
-	return h.updateStatus(ctx, update, entity.TaskStatusDone)
+	return h.updateStatus(ctx, update, "done", entity.TaskStatusDone)
 }
 
 func (h *TaskHandler) handleTodo(ctx *th.Context, update telego.Update) error {
-	return h.updateStatus(ctx, update, entity.TaskStatusToDo)
+	return h.updateStatus(ctx, update, "todo", entity.TaskStatusToDo)
 }
 
 func (h *TaskHandler) handleInProgress(ctx *th.Context, update telego.Update) error {
-	return h.updateStatus(ctx, update, entity.TaskStatusInProgress)
+	return h.updateStatus(ctx, update, "in_progress", entity.TaskStatusInProgress)
 }
 
 func (h *TaskHandler) handleTrash(ctx *th.Context, update telego.Update) error {
-	return h.updateStatus(ctx, update, entity.TaskStatusTrashed)
+	return h.updateStatus(ctx, update, "trash", entity.TaskStatusTrashed)
 }
 
 func (h *TaskHandler) handleUnknown(ctx *th.Context, update telego.Update) error {

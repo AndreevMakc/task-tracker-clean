@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"html"
 	"time"
 
 	"task-tracker-clean/internal/entity"
@@ -13,7 +14,7 @@ func FormatTask(t entity.Task) string {
 		"Status: %s\n"+
 		"Created: %s\n"+
 		"Updated: %s",
-		t.Title,
+		html.EscapeString(t.Title),
 		t.ID,
 		formatStatus(t.Status),
 		t.CreatedAt.Format(time.RFC822),
@@ -30,7 +31,7 @@ func FormatTaskList(tasks []entity.Task) string {
 	for i, t := range tasks {
 		emoji := statusEmoji(t.Status)
 		msg += fmt.Sprintf("%d. %s %s\n   ID: %s\n",
-			i+1, emoji, t.Title, t.ID)
+			i+1, emoji, html.EscapeString(t.Title), t.ID)
 	}
 	return msg
 }
