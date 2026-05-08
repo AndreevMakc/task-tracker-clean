@@ -12,8 +12,7 @@ import (
 
 type Bot struct {
 	bot      *telego.Bot
-	botUser  *telego.User
-	handler *th.BotHandler
+	handler  *th.BotHandler
 	uc       usecase.TaskUsecase
 }
 
@@ -40,7 +39,6 @@ func (b *Bot) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get bot info: %w", err)
 	}
-	b.botUser = botUser
 
 	log.Printf("starting telegram bot: %s", botUser.Username)
 
@@ -58,11 +56,14 @@ func (b *Bot) Run(ctx context.Context) error {
 	handler := NewTaskHandler(b.uc)
 	handler.RegisterBotHandler(bh)
 
-	if err := bh.Start(); err != nil {
-		return err
-	}
-
 	log.Println("telegram bot started")
+
+	go func() {
+		if err := bh.Start(); err != nil {
+			log.Printf("telegram bot handler error: %v", err)
+		}
+	}()
+
 	return nil
 }
 

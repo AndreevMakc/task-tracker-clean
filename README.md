@@ -91,6 +91,31 @@ migrate -path migrations -database "$PG_URL" up
 go run ./cmd/app
 ```
 
+## Telegram Bot Setup
+
+1. Create a bot via [@BotFather](https://t.me/BotFather):
+```text
+/newbot
+```
+2. Copy the bot token and set it in `.env`:
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+```
+3. Start the app and open your bot in Telegram.
+
+Supported commands:
+
+- `/start` - show welcome and command list
+- `/help` - show command help
+- `/create <title>` - create task
+- `/list` - list all tasks
+- `/list <status>` - filter tasks by `todo`, `in_progress`, `done`, `trashed`
+- `/get <id>` - show one task
+- `/done <id>` - move task to `done`
+- `/todo <id>` - move task to `todo`
+- `/in_progress <id>` - move task to `in_progress`
+- `/trash <id>` - move task to `trashed`
+
 ## API Documentation
 
 After running the app, Swagger UI is available at `/swagger/index.html` (if HTTP endpoints are enabled).
