@@ -11,6 +11,7 @@ type Config struct {
 	HTTP   HTTPConfig
 	PG     PGConfig
 	App    AppConfig
+	TG     TGConfig
 }
 
 type HTTPConfig struct {
@@ -24,6 +25,10 @@ type PGConfig struct {
 	MaxPoolSize  int
 	ConnAttempts int
 	ConnTimeout  time.Duration
+}
+
+type TGConfig struct {
+	BotToken string
 }
 
 type AppConfig struct {
@@ -45,6 +50,9 @@ func New() *Config {
 		},
 		App: AppConfig{
 			Name: getEnv("APP_NAME", "task-tracker-clean"),
+		},
+		TG: TGConfig{
+			BotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
 		},
 	}
 }

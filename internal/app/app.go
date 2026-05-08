@@ -13,6 +13,7 @@ import (
 
 	"task-tracker-clean/config"
 	"task-tracker-clean/internal/controller/restapi"
+	"task-tracker-clean/internal/controller/telegram"
 	"task-tracker-clean/internal/repo/persistent"
 	taskusecase "task-tracker-clean/internal/usecase/task"
 	"task-tracker-clean/pkg/httpserver"
@@ -30,7 +31,8 @@ func New(cfg *config.Config) *App {
 func (a *App) Run() error {
 	log.Printf("starting %s", a.cfg.App.Name)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	pg, err := postgres.New(ctx, a.cfg.PG.URL,
 		postgres.MaxPoolSize(a.cfg.PG.MaxPoolSize),
@@ -44,6 +46,11 @@ func (a *App) Run() error {
 
 	taskRepo := persistent.NewTaskRepo(pg.Pool())
 	taskUC := taskusecase.NewTaskUsecase(taskRepo)
+
+	tgBot, err := telegram.NewBot(taskUC, a.cfg.TG.BotToken)
+	if err != nil {
+		return fmt.Errorf("failed to create telegram bot: %w", err)
+	}
 
 	router := restapi.NewRouter(taskUC)
 
@@ -63,6 +70,15 @@ func (a *App) Run() error {
 		}
 	}()
 
+	botErr := make(chan error, 1)
+	if tgBot != nil {
+		go func() {
+			if err := tgBot.Run(ctx); err != nil {
+				botErr <- err
+			}
+		}()
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -70,13 +86,23 @@ func (a *App) Run() error {
 	case err := <-serverErr:
 		// Server crashed on its own, graceful shutdown is meaningless
 		return fmt.Errorf("http server error: %w", err)
+	case err := <-botErr:
+		return fmt.Errorf("telegram bot error: %w", err)
 	case <-quit:
 	}
 
-	log.Println("shutting down server...")
+	log.Println("shutting down...")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	cancel()
+
+	if tgBot != nil {
+		if err := tgBot.Stop(); err != nil {
+			log.Printf("telegram bot stop error: %v", err)
+		}
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("server forced to shutdown: %v", err)
